@@ -1,13 +1,13 @@
 import * as dao from "./dao.js";
 
 export default function EnrollmentRoutes(app) {
-  app.get("/api/courses/:courseId/enrollments", (req, res) => {
+  app.get("/api/courses/:courseId/enrollments", async (req, res) => {
     const { courseId } = req.params;
-    const enrollments = dao.findEnrollmentsForCourse(courseId);
+    const enrollments = await dao.findEnrollmentsForCourse(courseId);
     res.json(enrollments);
   });
 
-  app.get("/api/users/:userId/enrollments", (req, res) => {
+  app.get("/api/users/:userId/enrollments", async (req, res) => {
     let { userId } = req.params;
 
     if (userId === "current") {
@@ -19,38 +19,42 @@ export default function EnrollmentRoutes(app) {
       userId = currentUser._id;
     }
 
-    const enrollments = dao.findEnrollmentsForUser(userId);
+    const enrollments = await dao.findEnrollmentsForUser(userId);
     res.json(enrollments);
   });
 
-  app.post("/api/enrollments", (req, res) => {
+  app.post("/api/enrollments", async (req, res) => {
     const { userId, courseId } = req.body;
     if (!userId || !courseId) {
       res.status(400).json({ error: "userId and courseId are required" });
       return;
     }
 
-    const enrollment = dao.enrollUserInCourse(userId, courseId);
-    if (!enrollment) {
-      res.status(409).json({ error: "Already enrolled" });
-      return;
+    try {
+      const enrollment = await dao.enrollUserInCourse(userId, courseId);
+      res.json(enrollment);
+    } catch (e) {
+      if (e?.code === 11000) {
+        res.status(409).json({ error: "Already enrolled" });
+        return;
+      }
+      throw e;
     }
-
-    res.json(enrollment);
   });
-  app.delete("/api/enrollments/:enrollmentId", (req, res) => {
+
+  app.delete("/api/enrollments/:enrollmentId", async (req, res) => {
     const { enrollmentId } = req.params;
-    const status = dao.deleteEnrollmentById(enrollmentId);
+    const status = await dao.deleteEnrollmentById(enrollmentId);
     res.json(status);
   });
 
-  app.delete("/api/enrollments", (req, res) => {
+  app.delete("/api/enrollments", async (req, res) => {
     const { userId, courseId } = req.body;
     if (!userId || !courseId) {
       res.status(400).json({ error: "userId and courseId are required" });
       return;
     }
-    const status = dao.unenrollUserFromCourse(userId, courseId);
+    const status = await dao.unenrollUserFromCourse(userId, courseId);
     res.json(status);
   });
 }

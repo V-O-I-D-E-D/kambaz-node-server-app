@@ -1,31 +1,40 @@
-import Database from "../Database/index.js";
 import { v4 as uuidv4 } from "uuid";
+import coursesModel from "../Courses/model.js";
 
-export function findModulesForCourse(courseId) {
-  const { modules } = Database;
-  return modules.filter((module) => module.course === courseId);
-}
+export const findModulesForCourse = async (courseId) => {
+  const course = await coursesModel.findById(courseId);
+  return course?.modules ?? [];
+};
 
-export function createModule(module) {
+export const createModule = async (courseId, module) => {
   const newModule = {
+    _id: module._id || uuidv4(),
+    lessons: module.lessons ?? [],
     ...module,
-    _id: uuidv4(),
-    lessons: module.lessons || [],
   };
-  Database.modules = [...Database.modules, newModule];
+  await coursesModel.updateOne(
+    { _id: courseId },
+    { $push: { modules: newModule } }
+  );
   return newModule;
-}
+};
 
-export function deleteModule(moduleId) {
-  const { modules } = Database;
-  Database.modules = modules.filter((module) => module._id !== moduleId);
-  return { status: "ok" };
-}
+export const deleteModule = (courseId, moduleId) =>
+  coursesModel.updateOne(
+    { _id: courseId },
+    { $pull: { modules: { _id: moduleId } } }
+  );
 
-export function updateModule(moduleId, moduleUpdates) {
-  const { modules } = Database;
-  const module = modules.find((m) => m._id === moduleId);
-  if (!module) return null;
+export const updateModule = async (courseId, moduleId, moduleUpdates) => {
+  const course = await coursesModel.findById(courseId);
+  if (!course) {
+    return null;
+  }
+  const module = course.modules.id(moduleId);
+  if (!module) {
+    return null;
+  }
   Object.assign(module, moduleUpdates);
+  await course.save();
   return module;
-}
+};

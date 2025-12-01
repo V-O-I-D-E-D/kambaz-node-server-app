@@ -1,39 +1,27 @@
-import Database from "../Database/index.js";
 import { v4 as uuidv4 } from "uuid";
+import model from "./model.js";
+import Database from "../Database/index.js";
 
-export function findAllCourses() {
-  return Database.courses;
-}
+export const findAllCourses = () => model.find();
 
-export function findCoursesForEnrolledUser(userId) {
-  const { courses, enrollments } = Database;
-  const enrolledCourses = courses.filter((course) =>
-    enrollments.some(
-      (enrollment) =>
-        enrollment.user === userId && enrollment.course === course._id
-    )
-  );
-  return enrolledCourses;
-}
+export const findCourseById = (courseId) => model.findById(courseId);
 
-export function createCourse(course) {
-  const newCourse = { ...course, _id: uuidv4() };
-  Database.courses = [...Database.courses, newCourse];
-  return newCourse;
-}
-export function deleteCourse(courseId) {
-  const { courses, enrollments } = Database;
-  Database.courses = courses.filter((course) => course._id !== courseId);
-  Database.enrollments = enrollments.filter(
-    (enrollment) => enrollment.course !== courseId
-  );
-  return { status: "ok" };
-}
+export const createCourse = (course) =>
+  model.create({
+    ...course,
+    _id: course._id || uuidv4(),
+    modules: course.modules ?? [],
+  });
 
-export function updateCourse(courseId, courseUpdates) {
-  const { courses } = Database;
-  const course = courses.find((course) => course._id === courseId);
-  if (!course) return null;
-  Object.assign(course, courseUpdates);
-  return course;
-}
+export const deleteCourse = (courseId) => model.deleteOne({ _id: courseId });
+
+export const updateCourse = (courseId, courseUpdates) =>
+  model.updateOne({ _id: courseId }, { $set: courseUpdates });
+
+export const findCoursesForEnrolledUser = (userId) => {
+  const { enrollments } = Database;
+  const enrolledCourseIds = enrollments
+    .filter((e) => e.user === userId)
+    .map((e) => e.course);
+  return model.find({ _id: { $in: enrolledCourseIds } });
+};

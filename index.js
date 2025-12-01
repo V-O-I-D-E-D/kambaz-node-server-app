@@ -12,6 +12,9 @@ import ModuleRoutes from "./Kambaz/Modules/routes.js";
 import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
 import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
 
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+const SERVER_URL = process.env.SERVER_URL || "http://localhost:4000";
+
 const CONNECTION_STRING =
   process.env.DATABASE_CONNECTION_STRING ||
   "mongodb://127.0.0.1:27017/kambaz";
@@ -22,7 +25,7 @@ const app = express();
 app.use(
   cors({
     credentials: true,
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: CLIENT_URL,
   })
 );
 
@@ -33,11 +36,12 @@ const sessionOptions = {
 };
 
 if (process.env.SERVER_ENV !== "development") {
+  const { hostname } = new URL(SERVER_URL);
   sessionOptions.proxy = true;
   sessionOptions.cookie = {
     sameSite: "none",
     secure: true,
-    domain: process.env.SERVER_URL,
+    domain: hostname,
   };
 }
 
